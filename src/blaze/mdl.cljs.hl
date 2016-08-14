@@ -1,0 +1,84 @@
+(ns blaze.mdl
+  (:require [material-hl.core :as mdl]
+            [material-hl.cards :as card]
+            [material-hl.grid :as grid]
+            [material-hl.navigation :as nav]
+            [blaze.core :as blz]))
+
+(defn bg= [image]
+  (cell= {:background-image (str "url('" image "')")}))
+
+(def ^:dynamic *about-settings* nil)
+
+(defelem about-card [attr kids]
+  (let [title (:title attr (:title *about-settings*))
+        image (:image attr)]
+    (grid/cell-card attr
+    (card/card-media :css (bg= image))
+    (card/card-supporting-text :class [:meta :meta--fill]
+      (div (text "~{title}"))))))
+
+(def ^:dynamic *featured-post* nil)
+
+(defelem featured-card [attr kids]
+  (let [post (cell= (:post attr *featured-post*))
+        image (cell= (:image attr (:image post)))]
+        (prn @post)
+    (for-tpl [f (cell= [post])]
+      (grid/cell-card attr
+        (card/card-media :css (bg= image))
+        (card/card-supporting-text :class [:meta])))))
+
+(defelem preview-card [attr kids]
+  (let []
+    (grid/cell-card
+      (card/card-media)
+      (card/card-supporting-text :class [:meta]))))
+
+(def ^:dynamic *links* nil)
+
+(defelem navigation [attr kids]
+  (let [links (or (:links attr) *links*)
+        router (or (:router attr) blz/*router*)]
+    (nav/navigation
+      attr
+      (for-tpl [l links]
+        (nav/nav-link
+          :click #(router (first @l))
+          (text "~{(second l)}")))
+      kids)))
+
+(def ^:dynamic *title* nil)
+
+(def ^:dynamic *items* nil)
+
+(defelem list-card-item [attr kids]
+  (let [meta (:meta-header attr)
+        desc (:meta-description attr)]
+    (div :class [:mdl-card__list-item :mdl-color-text--grey-600]
+      (div :class [:meta]
+        (div :class [:minilogo] :style {:background-image (:avatar attr)})
+        (div
+          (strong (text "~{meta}"))
+          (span (text "~{desc}"))))
+      (a :click (:click attr)
+        (h5 :class [:mdl-color-text--grey-600]
+          kids)))))
+
+(defelem list-card [attr kids]
+  (let [items (:items attr *items*)
+        title (:title attr *title*)
+        router (:router attr blz/*router*)]
+    (grid/cell-card
+      (card/card-media :class [:mdl-color-text--grey-50]
+        (h3 (text "~{title}")))
+      (for-tpl [i items]
+        (let [item (cell= (second i))
+              title (cell= (:title item))]
+            (list-card-item
+              :click #(router (first @i))
+              :meta-header (cell= (:header (:meta item) ""))
+              :meta-description (cell= (:desc (:meta item) ""))
+              :avatar (cell= (:icon item "../images/avatar.png"))
+              (text "~{title}")))
+          ))))

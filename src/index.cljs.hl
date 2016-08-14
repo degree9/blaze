@@ -1,0 +1,111 @@
+(page "index.html"
+  (:require [material-hl.core :as mdl]
+            [material-hl.layout :as layout]
+            [material-hl.navigation :as nav]
+            [material-hl.grid :as grid]
+            [material-hl.footer :as footer]
+            [material-hl.cards :as card]
+            [blaze.core :as blz]
+            [hoplon.firebase :as hfb]
+            [blaze.firebase :as fb]
+            [firebase-cljs.database :as fbdb]
+            [blaze.bidi :as bidi]
+            [blaze.mdl :as bmdl])
+  (:require-macros [hoplon.firebase :refer [with-auth!]]
+                   [hoplon.bidi :refer [route-tpl]]))
+
+;; Index Page
+(html
+  (head
+    ;; MDL Font Roboto
+    (mdl/include-fonts)
+
+    ;; MDL Icons
+    (mdl/include-icons)
+
+    ;; MDL Colors
+    (mdl/include-colors :grey :orange)
+
+    ;; Custom CSS
+    (link :rel "stylesheet" :href "css/demo.css")
+
+    ;; Title
+    (title "Blaze - A (No Backend) Blog")
+
+    ;; Default HTML Meta
+    (html-meta :charset "utf-8")
+    (html-meta :http-equiv "X-UA-Compatible" :content "IE=edge,chrome=1")
+    (html-meta :name "viewport" :content "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1"))
+  (body
+    (binding [blaze.bidi/*prefix* ""
+              blaze.mdl/*links* (fb/navigation=)
+              blaze.core/*settings* (fb/settings=)
+              blaze.core/*router* bidi/route!]
+      (let [router blz/*router*
+            prefix bidi/*prefix*
+            about-settings (cell= (:about (:cards blz/*settings*)))
+            featured-settings (cell= (:featured (:posts blz/*settings*)))
+            featured-post (cell nil)]
+        (layout/layout
+          :class [:demo-blog :demo-blog--blogpost]
+          :drawer-button true
+          :desktop-drawer-button true
+          (layout/layout-header
+            :scroll true
+            :transparent true
+            (layout/header-row
+              (layout/layout-spacer)
+              (bmdl/navigation :router #(router % :prefix prefix))))
+          (layout/layout-drawer
+            (bmdl/navigation :router #(router % :prefix prefix)))
+          (layout/layout-content
+            (route-tpl (bidi/routes)
+              :index
+                (binding [grid/*cols*   12
+                          grid/*shadow* 2]
+                  (let [
+                  ;featured-post (hfb/fb-cell (fbdb/get-in fb/*db* [:posts @featured-settings]))
+                  ]
+                    ;(prn featured-post)
+                    (grid/grid
+                      :class [:demo-blog__posts]
+                      (bmdl/about-card
+                        :title (cell= (:title about-settings))
+                        :image (cell= (:image about-settings))
+                        :desktop-cols 4)
+                      (bmdl/featured-card :desktop-cols 8 :post (cell= featured-post))
+                      (bmdl/preview-card)
+                      (bmdl/preview-card))))
+              :categories
+                (binding [grid/*cols*   12
+                          grid/*shadow* 2
+                          bmdl/*title* "Categories:"
+                          bmdl/*items* (fb/categories=)]
+                  (grid/grid
+                    :class [:demo-blog__list]
+                    (bmdl/list-card :router #(router :category :id % :prefix prefix))))
+              :category
+                (binding [grid/*cols*   12
+                          grid/*shadow* 2]
+                  (grid/grid
+                    :class [:demo-blog__posts]))
+              :posts
+                (binding [grid/*cols*   12
+                          grid/*shadow* 2
+                          bmdl/*title* "All Posts:"
+                          bmdl/*items* (fb/posts=)]
+                  (grid/grid
+                    :class [:demo-blog__list]
+                    (bmdl/list-card :router #(router :post :id % :prefix prefix))))
+              :post
+                (binding [grid/*cols*   12
+                          grid/*shadow* 2]
+                  (grid/grid
+                    :class [:demo-blog__posts]
+                    (grid/cell-card
+                      (card/card-media :class [:mdl-color-text--grey-50]
+                        (h3 "Title"))
+                      (card/card-supporting-text :class [:meta])
+                      (card/card-supporting-text)
+                      (card/card-supporting-text :class [:comments])))))
+          (footer/mini-footer)))))))
